@@ -71,6 +71,38 @@ pub fn part1() {
     println!("Value at position 0: {}", memory[0]);
 }
 
+pub fn part2() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let initializer = handle
+        .split(b',')
+        .map(|number| {
+            str::from_utf8(&number.unwrap())
+                .unwrap()
+                .parse::<i32>()
+                .unwrap()
+        })
+        .collect::<Vec<_>>();
+
+    for noun in 0..100 {
+        for verb in 0..100 {
+            let mut memory = initializer.to_vec();
+
+            memory[1] = noun;
+            memory[2] = verb;
+
+            execute(&mut memory);
+
+            if memory[0] == 1969_0720 {
+                println!("Target noun: {}", noun);
+                println!("Target verb: {}", verb);
+
+                return;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
