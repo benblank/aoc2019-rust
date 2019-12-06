@@ -1,5 +1,9 @@
 mod day01;
 mod day02;
+mod day03;
+
+#[cfg(test)]
+extern crate maplit;
 
 use std::env;
 
@@ -10,6 +14,7 @@ fn main() {
             "1.2" => day01::part2(),
             "2.1" => day02::part1(),
             "2.2" => day02::part2(),
+            "3.1" => day03::part1(),
             _ => eprintln!("Day {} hasn't been written yet!", arg),
         }
     }
