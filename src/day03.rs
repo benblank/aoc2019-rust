@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::io::{self, BufRead};
+use std::fs;
+use std::io::BufRead;
 use std::ops::AddAssign;
+
+const INPUT_PATH: &str = "day03.input.txt";
 
 #[derive(Debug, PartialEq)]
 enum Direction {
@@ -82,9 +85,8 @@ fn parse_segments(source: &str) -> Vec<Segment> {
 }
 
 pub fn part1() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let wires = handle.lines().collect::<Result<Vec<_>, _>>().unwrap();
+    let input = fs::read(INPUT_PATH).unwrap();
+    let wires = input.lines().collect::<Result<Vec<_>, _>>().unwrap();
     let segments1 = parse_segments(&wires[0]);
     let segments2 = parse_segments(&wires[1]);
     let path1 = draw_path(&segments1);
@@ -101,9 +103,8 @@ pub fn part1() {
 }
 
 pub fn part2() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let wires = handle.lines().collect::<Result<Vec<_>, _>>().unwrap();
+    let input = fs::read(INPUT_PATH).unwrap();
+    let wires = input.lines().collect::<Result<Vec<_>, _>>().unwrap();
     let segments1 = parse_segments(&wires[0]);
     let segments2 = parse_segments(&wires[1]);
     let path1 = draw_path(&segments1);

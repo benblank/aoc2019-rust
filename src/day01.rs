@@ -1,4 +1,7 @@
-use std::io::{self, BufRead};
+use std::fs;
+use std::io::BufRead;
+
+const INPUT_PATH: &str = "day01.input.txt";
 
 fn calculate_fuel_cost(weight: i32) -> i32 {
     let fuel_cost = weight / 3 - 2;
@@ -21,12 +24,11 @@ fn recursively_calculate_fuel_cost(weight: i32) -> i32 {
 }
 
 pub fn part1() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    let input = fs::read(INPUT_PATH).unwrap();
 
     println!(
         "Total fuel requirements: {}",
-        handle
+        input
             .lines()
             .map(|line| { calculate_fuel_cost(line.unwrap().parse::<i32>().unwrap()) })
             .sum::<i32>()
@@ -34,12 +36,11 @@ pub fn part1() {
 }
 
 pub fn part2() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
+    let input = fs::read(INPUT_PATH).unwrap();
 
     println!(
         "Total fuel requirements: {}",
-        handle
+        input
             .lines()
             .map(|line| { recursively_calculate_fuel_cost(line.unwrap().parse::<i32>().unwrap()) })
             .sum::<i32>()

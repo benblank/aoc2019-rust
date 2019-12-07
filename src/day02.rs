@@ -1,18 +1,14 @@
 use crate::intcomp::execute;
-use std::io::{self, BufRead};
+use std::fs;
 use std::str;
 
+const INPUT_PATH: &str = "day02.input.txt";
+
 pub fn part1() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let mut memory = handle
-        .split(b',')
-        .map(|number| {
-            str::from_utf8(&number.unwrap())
-                .unwrap()
-                .parse::<i32>()
-                .unwrap()
-        })
+    let input = fs::read(INPUT_PATH).unwrap();
+    let mut memory = input
+        .split(|byte| byte == &b',')
+        .map(|number| str::from_utf8(&number).unwrap().parse::<i32>().unwrap())
         .collect::<Vec<_>>();
 
     memory[1] = 12;
@@ -24,16 +20,10 @@ pub fn part1() {
 }
 
 pub fn part2() {
-    let stdin = io::stdin();
-    let handle = stdin.lock();
-    let initializer = handle
-        .split(b',')
-        .map(|number| {
-            str::from_utf8(&number.unwrap())
-                .unwrap()
-                .parse::<i32>()
-                .unwrap()
-        })
+    let input = fs::read(INPUT_PATH).unwrap();
+    let initializer = input
+        .split(|byte| byte == &b',')
+        .map(|number| str::from_utf8(&number).unwrap().parse::<i32>().unwrap())
         .collect::<Vec<_>>();
 
     for noun in 0..100 {
