@@ -40,6 +40,21 @@ fn has_pair(candidate: u32) -> bool {
     false
 }
 
+fn has_strict_pair(candidate: u32) -> bool {
+    let digits = to_digits(candidate);
+
+    for i in 0..(digits.len() - 1) {
+        if (i == 0 || digits[i] != digits[i - 1])
+            && digits[i] == digits[i + 1]
+            && (i == digits.len() - 2 || digits[i + 1] != digits[i + 2])
+        {
+            return true;
+        }
+    }
+
+    false
+}
+
 fn to_digits(number: u32) -> Vec<u32> {
     let mut digits = Vec::new();
     let mut remaining = number;
@@ -61,6 +76,21 @@ pub fn part1() {
 
     while candidate <= STOP {
         if has_pair(candidate) {
+            count += 1;
+        }
+
+        candidate = ensure_ascending(candidate + 1);
+    }
+
+    println!("Possible passwords: {}", count);
+}
+
+pub fn part2() {
+    let mut candidate = ensure_ascending(START);
+    let mut count = 0;
+
+    while candidate <= STOP {
+        if has_strict_pair(candidate) {
             count += 1;
         }
 
@@ -95,6 +125,19 @@ mod tests {
         assert_eq!(true, has_pair(1223));
         assert_eq!(true, has_pair(1123));
         assert_eq!(true, has_pair(1133));
+    }
+
+    #[test]
+    fn has_strict_pair_works() {
+        assert_eq!(false, has_strict_pair(1234));
+        assert_eq!(true, has_strict_pair(1233));
+        assert_eq!(true, has_strict_pair(1223));
+        assert_eq!(true, has_strict_pair(1123));
+        assert_eq!(true, has_strict_pair(1133));
+        assert_eq!(false, has_strict_pair(12333));
+        assert_eq!(false, has_strict_pair(12223));
+        assert_eq!(false, has_strict_pair(11123));
+        assert_eq!(true, has_strict_pair(11333));
     }
 
     #[test]
