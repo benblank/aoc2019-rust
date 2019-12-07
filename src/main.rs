@@ -1,6 +1,7 @@
 mod day01;
 mod day02;
 mod day03;
+mod day04;
 
 #[cfg(test)]
 extern crate maplit;
@@ -16,6 +17,7 @@ fn main() {
             "2.2" => day02::part2(),
             "3.1" => day03::part1(),
             "3.2" => day03::part2(),
+            "4.1" => day04::part1(),
             _ => eprintln!("Day {} hasn't been written yet!", arg),
         }
     }
