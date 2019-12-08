@@ -1,3 +1,5 @@
+use std::io::{stdin, stdout, Write};
+
 #[derive(Debug, PartialEq)]
 enum AddressType {
     Address,
@@ -18,6 +20,8 @@ impl AddressType {
 enum Instruction {
     Add(AddressType, AddressType, AddressType),
     Multiply(AddressType, AddressType, AddressType),
+    Input(AddressType),
+    Output(AddressType),
     Halt,
 }
 
@@ -38,6 +42,8 @@ impl Instruction {
                 AddressType::Address,
             ),
 
+            3 => Instruction::Input(AddressType::Address),
+            4 => Instruction::Output(AddressType::from_digit(get_digit(instruction, 3))),
             99 => Instruction::Halt,
             _ => panic!("Invalid opcode! ({})", opcode),
         }
@@ -87,6 +93,32 @@ impl Intcomp {
 
                     self.memory[target] = operand1 * operand2;
                     self.ip += 4;
+                }
+
+                Instruction::Input(_) => {
+                    let target = self.memory[self.ip + 1] as usize;
+                    let mut input = String::new();
+
+                    print!(": ");
+                    stdout().flush().unwrap();
+
+                    stdin()
+                        .read_line(&mut input)
+                        .expect("failed to read from stdin");
+
+                    self.memory[target] = input.trim().parse::<i32>().unwrap();
+                    self.ip += 2;
+                }
+
+                Instruction::Output(operand_type) => {
+                    let operand = match operand_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 1],
+                    };
+
+                    println!("{}", operand);
+
+                    self.ip += 2;
                 }
 
                 Instruction::Halt => return,
@@ -146,6 +178,22 @@ mod tests {
         match Instruction::parse(2) {
             Instruction::Multiply(_, _, _) => {}
             _ => panic!("expected Multiply"),
+        }
+    }
+
+    #[test]
+    fn instruction_parse_supports_input() {
+        match Instruction::parse(3) {
+            Instruction::Input(_) => {}
+            _ => panic!("expected Input"),
+        }
+    }
+
+    #[test]
+    fn instruction_parse_supports_output() {
+        match Instruction::parse(4) {
+            Instruction::Output(_) => {}
+            _ => panic!("expected Output"),
         }
     }
 
