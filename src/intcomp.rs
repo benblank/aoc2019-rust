@@ -1,31 +1,15 @@
 use std::io::{stdin, stdout, Write};
 
 #[derive(Debug, PartialEq)]
-enum AddressType {
-    Address,
-    Immediate,
-}
-
-impl AddressType {
-    fn from_digit(digit: i32) -> AddressType {
-        match digit {
-            0 => AddressType::Address,
-            1 => AddressType::Immediate,
-            _ => panic!("Invalid address type! ({})", digit),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
 enum Instruction {
-    Add(AddressType, AddressType, AddressType),
-    Multiply(AddressType, AddressType, AddressType),
-    Input(AddressType),
-    Output(AddressType),
-    JumpIfTrue(AddressType, AddressType),
-    JumpIfFalse(AddressType, AddressType),
-    LessThan(AddressType, AddressType, AddressType),
-    Equals(AddressType, AddressType, AddressType),
+    Add(OperandMode, OperandMode, OperandMode),
+    Multiply(OperandMode, OperandMode, OperandMode),
+    Input(OperandMode),
+    Output(OperandMode),
+    JumpIfTrue(OperandMode, OperandMode),
+    JumpIfFalse(OperandMode, OperandMode),
+    LessThan(OperandMode, OperandMode, OperandMode),
+    Equals(OperandMode, OperandMode, OperandMode),
     Halt,
 }
 
@@ -35,40 +19,40 @@ impl Instruction {
 
         match opcode {
             1 => Instruction::Add(
-                AddressType::from_digit(get_digit(instruction, 3)),
-                AddressType::from_digit(get_digit(instruction, 4)),
-                AddressType::Address,
+                OperandMode::from_digit(get_digit(instruction, 3)),
+                OperandMode::from_digit(get_digit(instruction, 4)),
+                OperandMode::Position,
             ),
 
             2 => Instruction::Multiply(
-                AddressType::from_digit(get_digit(instruction, 3)),
-                AddressType::from_digit(get_digit(instruction, 4)),
-                AddressType::Address,
+                OperandMode::from_digit(get_digit(instruction, 3)),
+                OperandMode::from_digit(get_digit(instruction, 4)),
+                OperandMode::Position,
             ),
 
-            3 => Instruction::Input(AddressType::Address),
-            4 => Instruction::Output(AddressType::from_digit(get_digit(instruction, 3))),
+            3 => Instruction::Input(OperandMode::Position),
+            4 => Instruction::Output(OperandMode::from_digit(get_digit(instruction, 3))),
 
             5 => Instruction::JumpIfTrue(
-                AddressType::from_digit(get_digit(instruction, 3)),
-                AddressType::from_digit(get_digit(instruction, 4)),
+                OperandMode::from_digit(get_digit(instruction, 3)),
+                OperandMode::from_digit(get_digit(instruction, 4)),
             ),
 
             6 => Instruction::JumpIfFalse(
-                AddressType::from_digit(get_digit(instruction, 3)),
-                AddressType::from_digit(get_digit(instruction, 4)),
+                OperandMode::from_digit(get_digit(instruction, 3)),
+                OperandMode::from_digit(get_digit(instruction, 4)),
             ),
 
             7 => Instruction::LessThan(
-                AddressType::from_digit(get_digit(instruction, 3)),
-                AddressType::from_digit(get_digit(instruction, 4)),
-                AddressType::Address,
+                OperandMode::from_digit(get_digit(instruction, 3)),
+                OperandMode::from_digit(get_digit(instruction, 4)),
+                OperandMode::Position,
             ),
 
             8 => Instruction::Equals(
-                AddressType::from_digit(get_digit(instruction, 3)),
-                AddressType::from_digit(get_digit(instruction, 4)),
-                AddressType::Address,
+                OperandMode::from_digit(get_digit(instruction, 3)),
+                OperandMode::from_digit(get_digit(instruction, 4)),
+                OperandMode::Position,
             ),
 
             99 => Instruction::Halt,
@@ -88,15 +72,15 @@ impl Intcomp {
             let instruction = Instruction::parse(self.memory[self.ip]);
 
             match instruction {
-                Instruction::Add(operand1_type, operand2_type, _) => {
-                    let operand1 = match operand1_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 1],
+                Instruction::Add(operand1_mode, operand2_mode, _) => {
+                    let operand1 = match operand1_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 1] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 1],
                     };
 
-                    let operand2 = match operand2_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 2] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 2],
+                    let operand2 = match operand2_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 2] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 2],
                     };
 
                     let target = self.memory[self.ip + 3] as usize;
@@ -105,15 +89,15 @@ impl Intcomp {
                     self.ip += 4;
                 }
 
-                Instruction::Multiply(operand1_type, operand2_type, _) => {
-                    let operand1 = match operand1_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 1],
+                Instruction::Multiply(operand1_mode, operand2_mode, _) => {
+                    let operand1 = match operand1_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 1] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 1],
                     };
 
-                    let operand2 = match operand2_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 2] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 2],
+                    let operand2 = match operand2_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 2] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 2],
                     };
 
                     let target = self.memory[self.ip + 3] as usize;
@@ -137,26 +121,26 @@ impl Intcomp {
                     self.ip += 2;
                 }
 
-                Instruction::Output(operand_type) => {
-                    let operand = match operand_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 1],
+                Instruction::Output(output_mode) => {
+                    let output = match output_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 1] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 1],
                     };
 
-                    println!("{}", operand);
+                    println!("{}", output);
 
                     self.ip += 2;
                 }
 
-                Instruction::JumpIfTrue(operand_type, jump_to_type) => {
-                    let operand = match operand_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 1],
+                Instruction::JumpIfTrue(operand_mode, jump_to_mode) => {
+                    let operand = match operand_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 1] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 1],
                     };
 
-                    let jump_to = match jump_to_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 2] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 2],
+                    let jump_to = match jump_to_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 2] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 2],
                     } as usize;
 
                     if operand != 0 {
@@ -166,15 +150,15 @@ impl Intcomp {
                     }
                 }
 
-                Instruction::JumpIfFalse(operand_type, jump_to_type) => {
-                    let operand = match operand_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 1],
+                Instruction::JumpIfFalse(operand_mode, jump_to_mode) => {
+                    let operand = match operand_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 1] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 1],
                     };
 
-                    let jump_to = match jump_to_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 2] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 2],
+                    let jump_to = match jump_to_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 2] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 2],
                     } as usize;
 
                     if operand == 0 {
@@ -184,15 +168,15 @@ impl Intcomp {
                     }
                 }
 
-                Instruction::LessThan(operand1_type, operand2_type, _) => {
-                    let operand1 = match operand1_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 1],
+                Instruction::LessThan(operand1_mode, operand2_mode, _) => {
+                    let operand1 = match operand1_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 1] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 1],
                     };
 
-                    let operand2 = match operand2_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 2] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 2],
+                    let operand2 = match operand2_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 2] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 2],
                     };
 
                     let target = self.memory[self.ip + 3] as usize;
@@ -201,15 +185,15 @@ impl Intcomp {
                     self.ip += 4;
                 }
 
-                Instruction::Equals(operand1_type, operand2_type, _) => {
-                    let operand1 = match operand1_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 1],
+                Instruction::Equals(operand1_mode, operand2_mode, _) => {
+                    let operand1 = match operand1_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 1] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 1],
                     };
 
-                    let operand2 = match operand2_type {
-                        AddressType::Address => self.memory[self.memory[self.ip + 2] as usize],
-                        AddressType::Immediate => self.memory[self.ip + 2],
+                    let operand2 = match operand2_mode {
+                        OperandMode::Position => self.memory[self.memory[self.ip + 2] as usize],
+                        OperandMode::Immediate => self.memory[self.ip + 2],
                     };
 
                     let target = self.memory[self.ip + 3] as usize;
@@ -239,6 +223,22 @@ impl Intcomp {
     }
 }
 
+#[derive(Debug, PartialEq)]
+enum OperandMode {
+    Position,
+    Immediate,
+}
+
+impl OperandMode {
+    fn from_digit(digit: i32) -> OperandMode {
+        match digit {
+            0 => OperandMode::Position,
+            1 => OperandMode::Immediate,
+            _ => panic!("Invalid address type! ({})", digit),
+        }
+    }
+}
+
 /// Get the nth digit from the right.
 fn get_digit(number: i32, digit: u8) -> i32 {
     let base = i32::pow(10, digit as u32 - 1);
@@ -249,18 +249,6 @@ fn get_digit(number: i32, digit: u8) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn address_type_from_digit_works() {
-        assert_eq!(AddressType::Address, AddressType::from_digit(0));
-        assert_eq!(AddressType::Immediate, AddressType::from_digit(1));
-    }
-
-    #[test]
-    #[should_panic]
-    fn address_type_from_digit_panics_on_unrecognized_digit() {
-        AddressType::from_digit(9);
-    }
 
     #[test]
     fn instruction_parse_supports_add() {
@@ -308,15 +296,15 @@ mod tests {
     #[test]
     fn instruction_parse_supports_address() {
         match Instruction::parse(1) {
-            Instruction::Add(AddressType::Address, _, _) => {}
-            _ => panic!("expected Address"),
+            Instruction::Add(OperandMode::Position, _, _) => {}
+            _ => panic!("expected Position"),
         }
     }
 
     #[test]
     fn instruction_parse_supports_immediate() {
         match Instruction::parse(101) {
-            Instruction::Add(AddressType::Immediate, _, _) => {}
+            Instruction::Add(OperandMode::Immediate, _, _) => {}
             _ => panic!("expected Immediate"),
         }
     }
@@ -436,6 +424,18 @@ mod tests {
         intcomp.execute();
 
         assert_eq!(30, intcomp.read_memory(0));
+    }
+
+    #[test]
+    fn operand_mode_from_digit_works() {
+        assert_eq!(OperandMode::Position, OperandMode::from_digit(0));
+        assert_eq!(OperandMode::Immediate, OperandMode::from_digit(1));
+    }
+
+    #[test]
+    #[should_panic]
+    fn operand_mode_from_digit_panics_on_unrecognized_digit() {
+        OperandMode::from_digit(9);
     }
 
     #[test]
