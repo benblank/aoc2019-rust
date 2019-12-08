@@ -1,51 +1,120 @@
-use std::cmp;
+#[derive(Debug, PartialEq)]
+enum AddressType {
+    Address,
+    Immediate,
+}
 
-pub fn execute(memory: &mut Vec<i32>) {
-    let mut ip = 0;
-
-    loop {
-        if ip >= memory.len() {
-            panic!(
-                "Instruction pointer ran off the end of memory! ({} >= {})",
-                ip,
-                memory.len()
-            );
+impl AddressType {
+    fn from_digit(digit: i32) -> AddressType {
+        match digit {
+            0 => AddressType::Address,
+            1 => AddressType::Immediate,
+            _ => panic!("Invalid address type! ({})", digit),
         }
-
-        let opcode = memory[ip];
-
-        if opcode == 99 {
-            return;
-        }
-
-        while ip + 3 >= memory.len() {
-            memory.push(0);
-        }
-
-        let source1 = memory[ip + 1] as usize;
-        let source2 = memory[ip + 2] as usize;
-        let target = memory[ip + 3] as usize;
-        let result;
-
-        while cmp::max(source1, source2) >= memory.len() {
-            memory.push(0);
-        }
-
-        if opcode == 1 {
-            result = memory[source1] + memory[source2];
-        } else if opcode == 2 {
-            result = memory[source1] * memory[source2];
-        } else {
-            panic!("Invalid opcode! ({})", opcode);
-        }
-
-        while target >= memory.len() {
-            memory.push(0);
-        }
-
-        memory[target] = result;
-        ip += 4; // skip past opcode and all three operands
     }
+}
+
+#[derive(Debug, PartialEq)]
+enum Instruction {
+    Add(AddressType, AddressType, AddressType),
+    Multiply(AddressType, AddressType, AddressType),
+    Halt,
+}
+
+impl Instruction {
+    fn parse(instruction: i32) -> Instruction {
+        let opcode = instruction % 100;
+
+        match opcode {
+            1 => Instruction::Add(
+                AddressType::from_digit(get_digit(instruction, 3)),
+                AddressType::from_digit(get_digit(instruction, 4)),
+                AddressType::Address,
+            ),
+
+            2 => Instruction::Multiply(
+                AddressType::from_digit(get_digit(instruction, 3)),
+                AddressType::from_digit(get_digit(instruction, 4)),
+                AddressType::Address,
+            ),
+
+            99 => Instruction::Halt,
+            _ => panic!("Invalid opcode! ({})", opcode),
+        }
+    }
+}
+
+pub struct Intcomp {
+    memory: Vec<i32>,
+    ip: usize,
+}
+
+impl Intcomp {
+    pub fn execute(&mut self) {
+        loop {
+            let instruction = Instruction::parse(self.memory[self.ip]);
+
+            match instruction {
+                Instruction::Add(operand1_type, operand2_type, _) => {
+                    let operand1 = match operand1_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 1],
+                    };
+
+                    let operand2 = match operand2_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 2] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 2],
+                    };
+
+                    let target = self.memory[self.ip + 3] as usize;
+
+                    self.memory[target] = operand1 + operand2;
+                    self.ip += 4;
+                }
+
+                Instruction::Multiply(operand1_type, operand2_type, _) => {
+                    let operand1 = match operand1_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 1],
+                    };
+
+                    let operand2 = match operand2_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 2] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 2],
+                    };
+
+                    let target = self.memory[self.ip + 3] as usize;
+
+                    self.memory[target] = operand1 * operand2;
+                    self.ip += 4;
+                }
+
+                Instruction::Halt => return,
+            }
+        }
+    }
+
+    pub fn new(intitial_memory: &[i32]) -> Intcomp {
+        Intcomp {
+            memory: intitial_memory.to_vec(),
+            ip: 0,
+        }
+    }
+
+    pub fn read_memory(&self, address: usize) -> i32 {
+        self.memory[address]
+    }
+
+    pub fn write_memory(&mut self, address: usize, value: i32) {
+        self.memory[address] = value;
+    }
+}
+
+/// Get the nth digit from the right.
+fn get_digit(number: i32, digit: u8) -> i32 {
+    let base = i32::pow(10, digit as u32 - 1);
+
+    (number / base) % 10
 }
 
 #[cfg(test)]
@@ -53,98 +122,139 @@ mod tests {
     use super::*;
 
     #[test]
-    fn execute_halts() {
-        let mut memory = vec![99];
-
-        execute(&mut memory);
-    }
-
-    #[test]
-    fn execute_can_add() {
-        let mut memory = vec![1, 0, 0, 0, 99];
-
-        execute(&mut memory);
-
-        assert_eq!(2, memory[0]);
-    }
-
-    #[test]
-    fn execute_can_multiply() {
-        let mut memory = vec![2, 0, 0, 0, 99];
-
-        execute(&mut memory);
-
-        assert_eq!(4, memory[0]);
+    fn address_type_from_digit_works() {
+        assert_eq!(AddressType::Address, AddressType::from_digit(0));
+        assert_eq!(AddressType::Immediate, AddressType::from_digit(1));
     }
 
     #[test]
     #[should_panic]
-    fn execute_panics_on_unrecognized_opcode() {
-        let mut memory = vec![3, 0, 0, 0, 99];
-
-        execute(&mut memory);
+    fn address_type_from_digit_panics_on_unrecognized_digit() {
+        AddressType::from_digit(9);
     }
 
     #[test]
-    fn execute_extends_memory_for_operand1() {
-        let mut memory = vec![1, 5, 0, 0, 99];
-
-        execute(&mut memory);
-
-        assert_eq!(6, memory.len());
+    fn instruction_parse_supports_add() {
+        match Instruction::parse(1) {
+            Instruction::Add(_, _, _) => {}
+            _ => panic!("expected Add"),
+        }
     }
 
     #[test]
-    fn execute_extends_memory_for_operand2() {
-        let mut memory = vec![1, 0, 5, 0, 99];
-
-        execute(&mut memory);
-
-        assert_eq!(6, memory.len());
+    fn instruction_parse_supports_multiply() {
+        match Instruction::parse(2) {
+            Instruction::Multiply(_, _, _) => {}
+            _ => panic!("expected Multiply"),
+        }
     }
 
     #[test]
-    fn execute_extends_memory_for_operand3() {
-        let mut memory = vec![1, 0, 0, 5, 99];
-
-        execute(&mut memory);
-
-        assert_eq!(6, memory.len());
+    fn instruction_parse_supports_halt() {
+        assert_eq!(Instruction::Halt, Instruction::parse(99));
     }
 
     #[test]
-    fn execute_works_1() {
-        let mut memory = vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50];
-
-        execute(&mut memory);
-
-        assert_eq!(3500, memory[0]);
+    #[should_panic]
+    fn instruction_parse_panics_on_unsupported_opcode() {
+        Instruction::parse(0);
     }
 
     #[test]
-    fn execute_works_2() {
-        let mut memory = vec![2, 3, 0, 3, 99];
-
-        execute(&mut memory);
-
-        assert_eq!(6, memory[3]);
+    fn instruction_parse_supports_address() {
+        match Instruction::parse(1) {
+            Instruction::Add(AddressType::Address, _, _) => {}
+            _ => panic!("expected Address"),
+        }
     }
 
     #[test]
-    fn execute_works_3() {
-        let mut memory = vec![2, 4, 4, 5, 99, 0];
-
-        execute(&mut memory);
-
-        assert_eq!(9801, memory[5]);
+    fn instruction_parse_supports_immediate() {
+        match Instruction::parse(101) {
+            Instruction::Add(AddressType::Immediate, _, _) => {}
+            _ => panic!("expected Immediate"),
+        }
     }
 
     #[test]
-    fn execute_works_4() {
-        let mut memory = vec![1, 1, 1, 4, 99, 5, 6, 0, 99];
+    fn intcomp_execute_halts() {
+        let initializer = vec![99];
+        let mut intcomp = Intcomp::new(&initializer);
 
-        execute(&mut memory);
+        intcomp.execute();
+    }
 
-        assert_eq!(30, memory[0]);
+    #[test]
+    fn intcomp_execute_can_add() {
+        let initializer = vec![1, 0, 0, 0, 99];
+        let mut intcomp = Intcomp::new(&initializer);
+
+        intcomp.execute();
+
+        assert_eq!(2, intcomp.read_memory(0));
+    }
+
+    #[test]
+    fn intcomp_execute_can_multiply() {
+        let initializer = vec![2, 0, 0, 0, 99];
+        let mut intcomp = Intcomp::new(&initializer);
+
+        intcomp.execute();
+
+        assert_eq!(4, intcomp.read_memory(0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn intcomp_execute_panics_on_unrecognized_opcode() {
+        let initializer = vec![0, 0, 0, 0, 99];
+        let mut intcomp = Intcomp::new(&initializer);
+
+        intcomp.execute();
+    }
+
+    #[test]
+    fn intcomp_execute_works_1() {
+        let initializer = vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50];
+        let mut intcomp = Intcomp::new(&initializer);
+
+        intcomp.execute();
+
+        assert_eq!(3500, intcomp.read_memory(0));
+    }
+
+    #[test]
+    fn intcomp_execute_works_2() {
+        let initializer = vec![2, 3, 0, 3, 99];
+        let mut intcomp = Intcomp::new(&initializer);
+
+        intcomp.execute();
+
+        assert_eq!(6, intcomp.read_memory(3));
+    }
+
+    #[test]
+    fn intcomp_execute_works_3() {
+        let initializer = vec![2, 4, 4, 5, 99, 0];
+        let mut intcomp = Intcomp::new(&initializer);
+
+        intcomp.execute();
+
+        assert_eq!(9801, intcomp.read_memory(5));
+    }
+
+    #[test]
+    fn intcomp_execute_works_4() {
+        let initializer = vec![1, 1, 1, 4, 99, 5, 6, 0, 99];
+        let mut intcomp = Intcomp::new(&initializer);
+
+        intcomp.execute();
+
+        assert_eq!(30, intcomp.read_memory(0));
+    }
+
+    #[test]
+    fn get_digit_works() {
+        assert_eq!(8, get_digit(56789, 2));
     }
 }
