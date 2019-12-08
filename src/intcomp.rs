@@ -22,6 +22,10 @@ enum Instruction {
     Multiply(AddressType, AddressType, AddressType),
     Input(AddressType),
     Output(AddressType),
+    JumpIfTrue(AddressType, AddressType),
+    JumpIfFalse(AddressType, AddressType),
+    LessThan(AddressType, AddressType, AddressType),
+    Equals(AddressType, AddressType, AddressType),
     Halt,
 }
 
@@ -44,6 +48,29 @@ impl Instruction {
 
             3 => Instruction::Input(AddressType::Address),
             4 => Instruction::Output(AddressType::from_digit(get_digit(instruction, 3))),
+
+            5 => Instruction::JumpIfTrue(
+                AddressType::from_digit(get_digit(instruction, 3)),
+                AddressType::from_digit(get_digit(instruction, 4)),
+            ),
+
+            6 => Instruction::JumpIfFalse(
+                AddressType::from_digit(get_digit(instruction, 3)),
+                AddressType::from_digit(get_digit(instruction, 4)),
+            ),
+
+            7 => Instruction::LessThan(
+                AddressType::from_digit(get_digit(instruction, 3)),
+                AddressType::from_digit(get_digit(instruction, 4)),
+                AddressType::Address,
+            ),
+
+            8 => Instruction::Equals(
+                AddressType::from_digit(get_digit(instruction, 3)),
+                AddressType::from_digit(get_digit(instruction, 4)),
+                AddressType::Address,
+            ),
+
             99 => Instruction::Halt,
             _ => panic!("Invalid opcode! ({})", opcode),
         }
@@ -119,6 +146,76 @@ impl Intcomp {
                     println!("{}", operand);
 
                     self.ip += 2;
+                }
+
+                Instruction::JumpIfTrue(operand_type, jump_to_type) => {
+                    let operand = match operand_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 1],
+                    };
+
+                    let jump_to = match jump_to_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 2] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 2],
+                    } as usize;
+
+                    if operand != 0 {
+                        self.ip = jump_to;
+                    } else {
+                        self.ip += 3;
+                    }
+                }
+
+                Instruction::JumpIfFalse(operand_type, jump_to_type) => {
+                    let operand = match operand_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 1],
+                    };
+
+                    let jump_to = match jump_to_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 2] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 2],
+                    } as usize;
+
+                    if operand == 0 {
+                        self.ip = jump_to;
+                    } else {
+                        self.ip += 3;
+                    }
+                }
+
+                Instruction::LessThan(operand1_type, operand2_type, _) => {
+                    let operand1 = match operand1_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 1],
+                    };
+
+                    let operand2 = match operand2_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 2] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 2],
+                    };
+
+                    let target = self.memory[self.ip + 3] as usize;
+
+                    self.memory[target] = if operand1 < operand2 { 1 } else { 0 };
+                    self.ip += 4;
+                }
+
+                Instruction::Equals(operand1_type, operand2_type, _) => {
+                    let operand1 = match operand1_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 1] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 1],
+                    };
+
+                    let operand2 = match operand2_type {
+                        AddressType::Address => self.memory[self.memory[self.ip + 2] as usize],
+                        AddressType::Immediate => self.memory[self.ip + 2],
+                    };
+
+                    let target = self.memory[self.ip + 3] as usize;
+
+                    self.memory[target] = if operand1 == operand2 { 1 } else { 0 };
+                    self.ip += 4;
                 }
 
                 Instruction::Halt => return,
@@ -250,6 +347,46 @@ mod tests {
         intcomp.execute();
 
         assert_eq!(4, intcomp.read_memory(0));
+    }
+
+    #[test]
+    fn intcomp_execute_can_jump_if_true() {
+        let initializer = vec![1105, 1, 4, 99, 1102, 0, 0, 0, 99];
+        let mut intcomp = Intcomp::new(&initializer);
+
+        intcomp.execute();
+
+        assert_eq!(0, intcomp.read_memory(0));
+    }
+
+    #[test]
+    fn intcomp_execute_can_jump_if_false() {
+        let initializer = vec![1106, 0, 4, 99, 1102, 0, 0, 0, 99];
+        let mut intcomp = Intcomp::new(&initializer);
+
+        intcomp.execute();
+
+        assert_eq!(0, intcomp.read_memory(0));
+    }
+
+    #[test]
+    fn intcomp_execute_can_compare_less_than() {
+        let initializer = vec![1107, 0, 1, 0, 99];
+        let mut intcomp = Intcomp::new(&initializer);
+
+        intcomp.execute();
+
+        assert_eq!(1, intcomp.read_memory(0));
+    }
+
+    #[test]
+    fn intcomp_execute_can_compare_equals() {
+        let initializer = vec![1108, 0, 0, 0, 99];
+        let mut intcomp = Intcomp::new(&initializer);
+
+        intcomp.execute();
+
+        assert_eq!(1, intcomp.read_memory(0));
     }
 
     #[test]

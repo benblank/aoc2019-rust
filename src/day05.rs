@@ -4,7 +4,7 @@ use std::str;
 
 const INPUT_PATH: &str = "day05.input.txt";
 
-pub fn part1() {
+pub fn run() {
     let input = fs::read(INPUT_PATH).unwrap();
     let memory = input
         .split(|byte| byte == &b',')
