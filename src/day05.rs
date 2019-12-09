@@ -1,16 +1,17 @@
 use crate::intcomp::Intcomp;
 use std::fs;
+use std::io;
 use std::str;
 
 const INPUT_PATH: &str = "day05.input.txt";
 
 pub fn run() {
     let input = fs::read(INPUT_PATH).unwrap();
-    let memory = input
+    let initializer = input
         .split(|byte| byte == &b',')
         .map(|number| str::from_utf8(&number).unwrap().parse::<i32>().unwrap())
         .collect::<Vec<_>>();
 
     // Executing the program creates its own ouput.
-    Intcomp::new(&memory).execute();
+    Intcomp::new(io::stdin().lock(), io::stdout(), &initializer).execute();
 }

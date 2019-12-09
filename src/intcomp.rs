@@ -1,4 +1,4 @@
-use std::io::{stdin, stdout, Write};
+use std::io::{BufRead, Write};
 
 #[derive(Debug, PartialEq)]
 enum Instruction {
@@ -61,12 +61,18 @@ impl Instruction {
     }
 }
 
-pub struct Intcomp {
+pub struct Intcomp<R, W> {
     memory: Vec<i32>,
     ip: usize,
+    stdin: R,
+    stdout: W,
 }
 
-impl Intcomp {
+impl<R, W> Intcomp<R, W>
+where
+    R: BufRead,
+    W: Write,
+{
     pub fn execute(&mut self) {
         loop {
             let instruction = Instruction::parse(self.memory[self.ip]);
@@ -110,10 +116,7 @@ impl Intcomp {
                     let target = self.memory[self.ip + 1] as usize;
                     let mut input = String::new();
 
-                    print!(": ");
-                    stdout().flush().unwrap();
-
-                    stdin()
+                    self.stdin
                         .read_line(&mut input)
                         .expect("failed to read from stdin");
 
@@ -127,7 +130,7 @@ impl Intcomp {
                         OperandMode::Immediate => self.memory[self.ip + 1],
                     };
 
-                    println!("{}", output);
+                    writeln!(&mut self.stdout, "{}", output).expect("failed to write to stdout");
 
                     self.ip += 2;
                 }
@@ -207,10 +210,12 @@ impl Intcomp {
         }
     }
 
-    pub fn new(intitial_memory: &[i32]) -> Intcomp {
+    pub fn new(stdin: R, stdout: W, intitial_memory: &[i32]) -> Intcomp<R, W> {
         Intcomp {
             memory: intitial_memory.to_vec(),
             ip: 0,
+            stdin,
+            stdout,
         }
     }
 
@@ -312,7 +317,7 @@ mod tests {
     #[test]
     fn intcomp_execute_halts() {
         let initializer = vec![99];
-        let mut intcomp = Intcomp::new(&initializer);
+        let mut intcomp = Intcomp::new(&b""[..], Vec::new(), &initializer);
 
         intcomp.execute();
     }
@@ -320,7 +325,7 @@ mod tests {
     #[test]
     fn intcomp_execute_can_add() {
         let initializer = vec![1, 0, 0, 0, 99];
-        let mut intcomp = Intcomp::new(&initializer);
+        let mut intcomp = Intcomp::new(&b""[..], Vec::new(), &initializer);
 
         intcomp.execute();
 
@@ -330,7 +335,7 @@ mod tests {
     #[test]
     fn intcomp_execute_can_multiply() {
         let initializer = vec![2, 0, 0, 0, 99];
-        let mut intcomp = Intcomp::new(&initializer);
+        let mut intcomp = Intcomp::new(&b""[..], Vec::new(), &initializer);
 
         intcomp.execute();
 
@@ -338,9 +343,31 @@ mod tests {
     }
 
     #[test]
+    fn intcomp_execute_can_input() {
+        let initializer = vec![3, 0, 99];
+        let input = b"1\n";
+        let mut intcomp = Intcomp::new(&input[..], Vec::new(), &initializer);
+
+        intcomp.execute();
+
+        assert_eq!(1, intcomp.read_memory(0));
+    }
+
+    #[test]
+    fn intcomp_execute_can_output() {
+        let initializer = vec![104, 1, 99];
+        let mut output = Vec::new();
+        let mut intcomp = Intcomp::new(&b""[..], &mut output, &initializer);
+
+        intcomp.execute();
+
+        assert_eq!("1\n", String::from_utf8(output).expect("not UTF-8"));
+    }
+
+    #[test]
     fn intcomp_execute_can_jump_if_true() {
         let initializer = vec![1105, 1, 4, 99, 1102, 0, 0, 0, 99];
-        let mut intcomp = Intcomp::new(&initializer);
+        let mut intcomp = Intcomp::new(&b""[..], Vec::new(), &initializer);
 
         intcomp.execute();
 
@@ -350,7 +377,7 @@ mod tests {
     #[test]
     fn intcomp_execute_can_jump_if_false() {
         let initializer = vec![1106, 0, 4, 99, 1102, 0, 0, 0, 99];
-        let mut intcomp = Intcomp::new(&initializer);
+        let mut intcomp = Intcomp::new(&b""[..], Vec::new(), &initializer);
 
         intcomp.execute();
 
@@ -360,7 +387,7 @@ mod tests {
     #[test]
     fn intcomp_execute_can_compare_less_than() {
         let initializer = vec![1107, 0, 1, 0, 99];
-        let mut intcomp = Intcomp::new(&initializer);
+        let mut intcomp = Intcomp::new(&b""[..], Vec::new(), &initializer);
 
         intcomp.execute();
 
@@ -370,7 +397,7 @@ mod tests {
     #[test]
     fn intcomp_execute_can_compare_equals() {
         let initializer = vec![1108, 0, 0, 0, 99];
-        let mut intcomp = Intcomp::new(&initializer);
+        let mut intcomp = Intcomp::new(&b""[..], Vec::new(), &initializer);
 
         intcomp.execute();
 
@@ -381,7 +408,7 @@ mod tests {
     #[should_panic]
     fn intcomp_execute_panics_on_unrecognized_opcode() {
         let initializer = vec![0, 0, 0, 0, 99];
-        let mut intcomp = Intcomp::new(&initializer);
+        let mut intcomp = Intcomp::new(&b""[..], Vec::new(), &initializer);
 
         intcomp.execute();
     }
@@ -389,7 +416,7 @@ mod tests {
     #[test]
     fn intcomp_execute_works_1() {
         let initializer = vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50];
-        let mut intcomp = Intcomp::new(&initializer);
+        let mut intcomp = Intcomp::new(&b""[..], Vec::new(), &initializer);
 
         intcomp.execute();
 
@@ -399,7 +426,7 @@ mod tests {
     #[test]
     fn intcomp_execute_works_2() {
         let initializer = vec![2, 3, 0, 3, 99];
-        let mut intcomp = Intcomp::new(&initializer);
+        let mut intcomp = Intcomp::new(&b""[..], Vec::new(), &initializer);
 
         intcomp.execute();
 
@@ -409,7 +436,7 @@ mod tests {
     #[test]
     fn intcomp_execute_works_3() {
         let initializer = vec![2, 4, 4, 5, 99, 0];
-        let mut intcomp = Intcomp::new(&initializer);
+        let mut intcomp = Intcomp::new(&b""[..], Vec::new(), &initializer);
 
         intcomp.execute();
 
@@ -419,7 +446,7 @@ mod tests {
     #[test]
     fn intcomp_execute_works_4() {
         let initializer = vec![1, 1, 1, 4, 99, 5, 6, 0, 99];
-        let mut intcomp = Intcomp::new(&initializer);
+        let mut intcomp = Intcomp::new(&b""[..], Vec::new(), &initializer);
 
         intcomp.execute();
 
