@@ -3,6 +3,7 @@ mod day02;
 mod day03;
 mod day04;
 mod day05;
+mod day06;
 mod intcomp;
 
 #[cfg(test)]
@@ -22,6 +23,7 @@ fn main() {
             "4.1" => day04::part1(),
             "4.2" => day04::part2(),
             "5" => day05::run(),
+            "6.1" => day06::part1(),
             _ => eprintln!("Day {} hasn't been written yet!", arg),
         }
     }
