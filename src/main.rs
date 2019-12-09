@@ -4,10 +4,12 @@ mod day03;
 mod day04;
 mod day05;
 mod day06;
+mod day07;
 mod intcomp;
 
 #[cfg(test)]
 extern crate maplit;
+extern crate permutohedron;
 
 use std::env;
 
@@ -25,6 +27,7 @@ fn main() {
             "5" => day05::run(),
             "6.1" => day06::part1(),
             "6.2" => day06::part2(),
+            "7.1" => day07::part1(),
             _ => eprintln!("Day {} hasn't been written yet!", arg),
         }
     }
