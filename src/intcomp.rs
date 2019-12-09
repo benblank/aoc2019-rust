@@ -240,8 +240,8 @@ impl OperandMode {
 }
 
 /// Get the nth digit from the right.
-fn get_digit(number: i32, digit: u8) -> i32 {
-    let base = i32::pow(10, digit as u32 - 1);
+fn get_digit(number: i32, digit: u32) -> i32 {
+    let base = i32::pow(10, digit - 1);
 
     (number / base) % 10
 }
