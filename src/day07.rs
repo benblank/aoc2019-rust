@@ -1,17 +1,10 @@
-use crate::intcomp::Intcomp;
+use crate::intcomp::{read_program, Intcomp};
 use permutohedron::Heap;
-use std::fs;
-use std::str;
 
 const INPUT_PATH: &str = "day07.input.txt";
 
 pub fn part1() {
-    let input = fs::read(INPUT_PATH).unwrap();
-    let initializer = input
-        .split(|byte| byte == &b',')
-        .map(|number| str::from_utf8(&number).unwrap().parse::<i32>().unwrap())
-        .collect::<Vec<_>>();
-
+    let initializer = read_program(INPUT_PATH);
     let mut max_signal = -1;
 
     for phase_settings in Heap::new(&mut vec![0, 1, 2, 3, 4]) {
@@ -36,12 +29,7 @@ pub fn part1() {
 }
 
 pub fn part2() {
-    let input = fs::read(INPUT_PATH).unwrap();
-    let initializer = input
-        .split(|byte| byte == &b',')
-        .map(|number| str::from_utf8(&number).unwrap().parse::<i32>().unwrap())
-        .collect::<Vec<_>>();
-
+    let initializer = read_program(INPUT_PATH);
     let mut max_signal = -1;
 
     for phase_settings in Heap::new(&mut vec![5, 6, 7, 8, 9]) {

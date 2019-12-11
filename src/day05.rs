@@ -1,16 +1,9 @@
-use crate::intcomp::Intcomp;
-use std::fs;
-use std::str;
+use crate::intcomp::{read_program, Intcomp};
 
 const INPUT_PATH: &str = "day05.input.txt";
 
 pub fn part1() {
-    let input = fs::read(INPUT_PATH).unwrap();
-    let initializer = input
-        .split(|byte| byte == &b',')
-        .map(|number| str::from_utf8(&number).unwrap().parse::<i32>().unwrap())
-        .collect::<Vec<_>>();
-
+    let initializer = read_program(INPUT_PATH);
     let mut intcomp = Intcomp::new(&initializer);
 
     intcomp.send_input(1);
@@ -33,12 +26,7 @@ pub fn part1() {
 }
 
 pub fn part2() {
-    let input = fs::read(INPUT_PATH).unwrap();
-    let initializer = input
-        .split(|byte| byte == &b',')
-        .map(|number| str::from_utf8(&number).unwrap().parse::<i32>().unwrap())
-        .collect::<Vec<_>>();
-
+    let initializer = read_program(INPUT_PATH);
     let mut intcomp = Intcomp::new(&initializer);
 
     intcomp.send_input(5);
