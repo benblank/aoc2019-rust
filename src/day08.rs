@@ -29,3 +29,31 @@ pub fn part1() {
 
     println!("Result: {}", result);
 }
+
+pub fn part2() {
+    let input = fs::read(INPUT_PATH)
+        .expect("could not read input file")
+        .iter()
+        .map(|digit| (*digit as char).to_digit(10).expect("bad digit"))
+        .collect::<Vec<_>>();
+    let layers = input.chunks(WIDTH * HEIGHT).rev().collect::<Vec<_>>();
+    let mut image = layers[0].to_owned();
+
+    for i in 1..(WIDTH * HEIGHT) {
+        for layer in &layers {
+            if layer[i] != 2 {
+                image[i] = layer[i];
+            }
+        }
+    }
+
+    for row in image.chunks(WIDTH) {
+        println!(
+            "{}",
+            row.iter()
+                .map(|number| if *number == 0 { " " } else { "#" })
+                .collect::<Vec<_>>()
+                .join("")
+        );
+    }
+}
