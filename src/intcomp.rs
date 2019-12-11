@@ -110,7 +110,13 @@ impl Intcomp {
 
                 Instruction::Input(_) => {
                     let target = self.memory[self.ip + 1] as usize;
-                    let input = self.input.pop_front().expect("no input available");
+
+                    let input = match self.input.pop_front() {
+                        Some(input) => input,
+
+                        // Terminate and await input.
+                        None => return,
+                    };
 
                     self.memory[target] = input;
                     self.ip += 2;
@@ -198,6 +204,13 @@ impl Intcomp {
 
                 Instruction::Halt => return,
             }
+        }
+    }
+
+    pub fn is_halted(&self) -> bool {
+        match Instruction::parse(self.memory[self.ip]) {
+            Instruction::Halt => true,
+            _ => false,
         }
     }
 
@@ -353,6 +366,21 @@ mod tests {
     }
 
     #[test]
+    fn intcomp_execute_can_await_input() {
+        let initializer = vec![3, 0, 99];
+        let mut intcomp = Intcomp::new(&initializer);
+
+        intcomp.execute();
+
+        assert_eq!(3, intcomp.read_memory(0));
+
+        intcomp.send_input(1);
+        intcomp.execute();
+
+        assert_eq!(1, intcomp.read_memory(0));
+    }
+
+    #[test]
     fn intcomp_execute_can_output() {
         let initializer = vec![104, 1, 99];
         let mut intcomp = Intcomp::new(&initializer);
@@ -449,6 +477,22 @@ mod tests {
         intcomp.execute();
 
         assert_eq!(30, intcomp.read_memory(0));
+    }
+
+    #[test]
+    fn intcomp_is_halted_detects_halt() {
+        let initializer = vec![99];
+        let intcomp = Intcomp::new(&initializer);
+
+        assert_eq!(true, intcomp.is_halted());
+    }
+
+    #[test]
+    fn intcomp_is_halted_detects_non_halt() {
+        let initializer = vec![3, 0, 99];
+        let intcomp = Intcomp::new(&initializer);
+
+        assert_eq!(false, intcomp.is_halted());
     }
 
     #[test]
