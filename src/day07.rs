@@ -18,17 +18,13 @@ pub fn part1() {
         let mut value = 0;
 
         for phase_setting in phase_settings {
-            let stdin = format!("{}\n{}\n", phase_setting, value);
-            let mut stdout = Vec::new();
-            let mut intcomp = Intcomp::new(stdin.as_bytes(), &mut stdout, &initializer);
+            let mut intcomp = Intcomp::new(&initializer);
 
+            intcomp.send_input(phase_setting);
+            intcomp.send_input(value);
             intcomp.execute();
 
-            value = String::from_utf8(stdout)
-                .expect("not UTF-8")
-                .trim()
-                .parse::<i32>()
-                .unwrap();
+            value = intcomp.receive_output().expect("no output available");
         }
 
         if value > max_value {
