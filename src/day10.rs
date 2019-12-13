@@ -1,8 +1,12 @@
+use std::cmp::Ordering;
 use std::collections::HashSet;
+use std::f64;
 use std::fs;
 use std::i32;
 
+const HEIGHT: i32 = 33;
 const INPUT_PATH: &str = "day10.input.txt";
+const WIDTH: i32 = 33;
 
 fn get_abs_gcd(a: i32, b: i32) -> i32 {
     let a = i32::abs(a);
@@ -15,7 +19,26 @@ fn get_abs_gcd(a: i32, b: i32) -> i32 {
     }
 }
 
-fn get_visible_asteroids(candidate: (i32, i32), asteroids: &HashSet<(i32, i32)>) -> usize {
+fn get_tracking_station(asteroids: &HashSet<(i32, i32)>) -> ((i32, i32), usize) {
+    let mut max_visible_asteroids = 0;
+    let mut tracking_station = (-1, -1);
+
+    for candidate in asteroids {
+        let visible_asteroids = get_visible_asteroid_vectors(*candidate, &asteroids).len();
+
+        if visible_asteroids > max_visible_asteroids {
+            max_visible_asteroids = visible_asteroids;
+            tracking_station = *candidate;
+        }
+    }
+
+    (tracking_station, max_visible_asteroids)
+}
+
+fn get_visible_asteroid_vectors(
+    candidate: (i32, i32),
+    asteroids: &HashSet<(i32, i32)>,
+) -> HashSet<(i32, i32)> {
     let mut visible_asteroid_vectors = HashSet::new();
 
     for asteroid in asteroids {
@@ -24,12 +47,12 @@ fn get_visible_asteroids(candidate: (i32, i32), asteroids: &HashSet<(i32, i32)>)
         }
 
         visible_asteroid_vectors.insert(simplify_vector(
-            candidate.0 - asteroid.0,
-            candidate.1 - asteroid.1,
+            asteroid.0 - candidate.0,
+            asteroid.1 - candidate.1,
         ));
     }
 
-    visible_asteroid_vectors.len()
+    visible_asteroid_vectors
 }
 
 fn read_map(map: &[u8]) -> HashSet<(i32, i32)> {
@@ -55,17 +78,91 @@ fn simplify_vector(x: i32, y: i32) -> (i32, i32) {
 pub fn part1() {
     let map = fs::read(INPUT_PATH).expect("could not read input");
     let asteroids = read_map(&map);
-    let mut max_visible_asteroids = 0;
-
-    for asteroid in &asteroids {
-        let visible_asteroids = get_visible_asteroids(*asteroid, &asteroids);
-
-        if visible_asteroids > max_visible_asteroids {
-            max_visible_asteroids = visible_asteroids;
-        }
-    }
+    let ((_, _), max_visible_asteroids) = get_tracking_station(&asteroids);
 
     println!("Best asteroid: {}", max_visible_asteroids);
+}
+
+pub fn part2() {
+    let map = fs::read(INPUT_PATH).expect("could not read input");
+    let mut asteroids = read_map(&map);
+
+    // Otherise, the loop below will never terminate.
+    if asteroids.len() < 200 {
+        panic!(
+            "Cannot find 200th asteroid when there are only {} asteroids",
+            asteroids.len()
+        );
+    }
+
+    let (tracking_station, _) = get_tracking_station(&asteroids);
+
+    // Otherwise, the tracking station blocks the first shot.
+    asteroids.remove(&tracking_station);
+
+    let vectors = get_visible_asteroid_vectors(tracking_station, &asteroids);
+
+    let mut phase_angles = vectors
+        .iter()
+        .map(|(x, y)| {
+            let atan2 = (*y as f64).atan2(*x as f64);
+
+            // Arctangent calculates from the x axis, so rotate to y.
+            let mut phase_angle = atan2 + f64::consts::FRAC_PI_2;
+
+            // Wrap negative values around so that 0 comes first.
+            while phase_angle < 0.0 {
+                phase_angle += 2.0 * f64::consts::PI;
+            }
+
+            (phase_angle, (x, y))
+        })
+        .collect::<Vec<_>>();
+
+    phase_angles.sort_by(|(phase_angle1, _), (phase_angle2, _)| {
+        if phase_angle1 < phase_angle2 {
+            Ordering::Less
+        } else if phase_angle1 > phase_angle2 {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    });
+
+    let mut destroyed = 0;
+
+    while destroyed < 200 {
+        for (_, vector) in &phase_angles {
+            let mut scalar = 1;
+
+            loop {
+                let scaled_vector = (vector.0 * scalar, vector.1 * scalar);
+                let candidate = (
+                    tracking_station.0 + scaled_vector.0,
+                    tracking_station.1 + scaled_vector.1,
+                );
+
+                if candidate.0 < 0 || candidate.0 > WIDTH || candidate.1 < 0 || candidate.1 > HEIGHT
+                {
+                    break;
+                }
+
+                if asteroids.remove(&candidate) {
+                    destroyed += 1;
+
+                    if destroyed == 200 {
+                        println!("200th asteroid destroyed: {:?}", candidate);
+
+                        return;
+                    }
+
+                    break;
+                }
+
+                scalar += 1;
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -114,35 +211,70 @@ mod tests {
     }
 
     #[test]
-    fn get_visible_asteroids_works_1() {
+    fn get_tracking_station_works_1() {
         let map = b"......#.#.\n#..#.#....\n..#######.\n.#.#.###..\n.#..#.....\n..#....#.#\n#..#....#.\n.##.#..###\n##...#..#.\n.#....####";
         let asteroids = read_map(map);
 
-        assert_eq!(33, get_visible_asteroids((5, 8), &asteroids));
+        assert_eq!(((5, 8), 33), get_tracking_station(&asteroids));
     }
 
     #[test]
-    fn get_visible_asteroids_works_2() {
+    fn get_tracking_station_works_2() {
         let map = b"#.#...#.#.\n.###....#.\n.#....#...\n##.#.#.#.#\n....#.#.#.\n.##..###.#\n..#...##..\n..##....##\n......#...\n.####.###.";
         let asteroids = read_map(map);
 
-        assert_eq!(35, get_visible_asteroids((1, 2), &asteroids));
+        assert_eq!(((1, 2), 35), get_tracking_station(&asteroids));
     }
 
     #[test]
-    fn get_visible_asteroids_works_3() {
+    fn get_tracking_station_works_3() {
         let map = b".#..#..###\n####.###.#\n....###.#.\n..###.##.#\n##.##.#.#.\n....###..#\n..#.#..#.#\n#..#.#.###\n.##...##.#\n.....#.#..";
         let asteroids = read_map(map);
 
-        assert_eq!(41, get_visible_asteroids((6, 3), &asteroids));
+        assert_eq!(((6, 3), 41), get_tracking_station(&asteroids));
     }
 
     #[test]
-    fn get_visible_asteroids_works_4() {
+    fn get_tracking_station_works_4() {
         let map = b".#..##.###...#######\n##.############..##.\n.#.######.########.#\n.###.#######.####.#.\n#####.##.#.##.###.##\n..#####..#.#########\n####################\n#.####....###.#.#.##\n##.#################\n#####.##.###..####..\n..######..##.#######\n####.##.####...##..#\n.#####..#.######.###\n##...#.##########...\n#.##########.#######\n.####.#.###.###.#.##\n....##.##.###..#####\n.#.#.###########.###\n#.#.#.#####.####.###\n###.##.####.##.#..##";
         let asteroids = read_map(map);
 
-        assert_eq!(210, get_visible_asteroids((11, 13), &asteroids));
+        assert_eq!(((11, 13), 210), get_tracking_station(&asteroids));
+    }
+
+    #[test]
+    fn get_visible_asteroid_vectors_works_1() {
+        let map = b"......#.#.\n#..#.#....\n..#######.\n.#.#.###..\n.#..#.....\n..#....#.#\n#..#....#.\n.##.#..###\n##...#..#.\n.#....####";
+        let asteroids = read_map(map);
+
+        assert_eq!(33, get_visible_asteroid_vectors((5, 8), &asteroids).len());
+    }
+
+    #[test]
+    fn get_visible_asteroid_vectors_works_2() {
+        let map = b"#.#...#.#.\n.###....#.\n.#....#...\n##.#.#.#.#\n....#.#.#.\n.##..###.#\n..#...##..\n..##....##\n......#...\n.####.###.";
+        let asteroids = read_map(map);
+
+        assert_eq!(35, get_visible_asteroid_vectors((1, 2), &asteroids).len());
+    }
+
+    #[test]
+    fn get_visible_asteroid_vectors_works_3() {
+        let map = b".#..#..###\n####.###.#\n....###.#.\n..###.##.#\n##.##.#.#.\n....###..#\n..#.#..#.#\n#..#.#.###\n.##...##.#\n.....#.#..";
+        let asteroids = read_map(map);
+
+        assert_eq!(41, get_visible_asteroid_vectors((6, 3), &asteroids).len());
+    }
+
+    #[test]
+    fn get_visible_asteroid_vectors_works_4() {
+        let map = b".#..##.###...#######\n##.############..##.\n.#.######.########.#\n.###.#######.####.#.\n#####.##.#.##.###.##\n..#####..#.#########\n####################\n#.####....###.#.#.##\n##.#################\n#####.##.###..####..\n..######..##.#######\n####.##.####...##..#\n.#####..#.######.###\n##...#.##########...\n#.##########.#######\n.####.#.###.###.#.##\n....##.##.###..#####\n.#.#.###########.###\n#.#.#.#####.####.###\n###.##.####.##.#..##";
+        let asteroids = read_map(map);
+
+        assert_eq!(
+            210,
+            get_visible_asteroid_vectors((11, 13), &asteroids).len()
+        );
     }
 
     #[test]
