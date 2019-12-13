@@ -14,3 +14,16 @@ pub fn part1() {
         intcomp.receive_output().expect("no output available")
     );
 }
+
+pub fn part2() {
+    let initializer = read_program(INPUT_PATH);
+    let mut intcomp = Intcomp::new(&initializer);
+
+    intcomp.send_input(2);
+    intcomp.execute();
+
+    println!(
+        "BOOST keycode: {}",
+        intcomp.receive_output().expect("no output available")
+    );
+}
