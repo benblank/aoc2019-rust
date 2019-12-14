@@ -9,8 +9,10 @@ mod day08;
 mod day09;
 mod day10;
 mod day11;
+mod day12;
 mod intcomp;
 
+extern crate itertools;
 #[cfg(test)]
 extern crate maplit;
 extern crate permutohedron;
@@ -42,6 +44,7 @@ fn main() {
             "10.2" => day10::part2(),
             "11.1" => day11::part1(),
             "11.2" => day11::part2(),
+            "12.1" => day12::part1(),
             _ => eprintln!("Day {} hasn't been written yet!", arg),
         }
     }
