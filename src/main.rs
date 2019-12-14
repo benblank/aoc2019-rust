@@ -45,6 +45,7 @@ fn main() {
             "11.1" => day11::part1(),
             "11.2" => day11::part2(),
             "12.1" => day12::part1(),
+            "12.2" => day12::part2(),
             _ => eprintln!("Day {} hasn't been written yet!", arg),
         }
     }
