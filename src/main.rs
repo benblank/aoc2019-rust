@@ -12,6 +12,7 @@ mod day11;
 mod day12;
 mod day13;
 mod day14;
+mod day15;
 mod intcomp;
 
 extern crate itertools;
@@ -52,6 +53,7 @@ fn main() {
             "13.2" => day13::part2(),
             "14.1" => day14::part1(),
             "14.2" => day14::part2(),
+            "15.1" => day15::part1(),
             _ => eprintln!("Day {} hasn't been written yet!", arg),
         }
     }
