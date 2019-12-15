@@ -8,14 +8,14 @@ const ORE: &str = "ORE";
 #[derive(Debug, PartialEq)]
 struct Ingredient {
     name: String,
-    count: u32,
+    count: u64,
 }
 
 impl Ingredient {
     fn from_string(string: &str) -> Ingredient {
         let parts = string.split(' ').collect::<Vec<_>>();
         let count = parts[0]
-            .parse::<u32>()
+            .parse::<u64>()
             .unwrap_or_else(|_| panic!("invalid ingredient count '{}'", parts[0]));
         let name = parts[1].to_string();
 
@@ -45,7 +45,39 @@ impl Recipe {
     }
 }
 
-fn only_need_ore(need: &HashMap<String, u32>) -> bool {
+fn count_fuel_made(ore_limit: u64, recipes: &HashMap<String, Recipe>) -> u64 {
+    let single_fuel_cost = get_ore_cost(&recipes, 1);
+
+    let mut min = ore_limit / single_fuel_cost;
+    let mut max = 2 * min;
+
+    loop {
+        let target = (min + max) / 2;
+        let cost = get_ore_cost(&recipes, target);
+        let cost_of_plus_one = get_ore_cost(&recipes, target + 1);
+
+        if cost <= ore_limit && cost_of_plus_one > ore_limit {
+            break target;
+        }
+
+        if cost < ore_limit {
+            min = target;
+        } else {
+            max = target;
+        }
+    }
+}
+
+fn get_ore_cost(recipes: &HashMap<String, Recipe>, fuel_count: u64) -> u64 {
+    let mut elements = HashMap::new();
+
+    elements.insert("FUEL".to_string(), fuel_count);
+    elements = reduce_to_ore(&recipes, elements);
+
+    *elements.get(ORE).expect("ore entry not found")
+}
+
+fn only_need_ore(need: &HashMap<String, u64>) -> bool {
     let elements = need.keys().collect::<Vec<_>>();
 
     elements.len() == 1 && elements[0] == ORE
@@ -65,8 +97,8 @@ fn parse_input(input: &[u8]) -> HashMap<String, Recipe> {
 
 fn reduce_to_ore(
     recipes: &HashMap<String, Recipe>,
-    elements: HashMap<String, u32>,
-) -> HashMap<String, u32> {
+    elements: HashMap<String, u64>,
+) -> HashMap<String, u64> {
     let mut elements = elements;
     let mut extras = HashMap::new();
 
@@ -133,16 +165,17 @@ fn reduce_to_ore(
 pub fn part1() {
     let input = fs::read(INPUT_PATH).expect("count not read input file");
     let recipes = parse_input(&input);
-    let mut elements = HashMap::new();
+    let fuel_cost = get_ore_cost(&recipes, 1);
 
-    elements.insert("FUEL".to_string(), 1);
+    println!("Ore needed: {}", fuel_cost);
+}
 
-    elements = reduce_to_ore(&recipes, elements);
+pub fn part2() {
+    let input = fs::read(INPUT_PATH).expect("count not read input file");
+    let recipes = parse_input(&input);
+    let fuel_created = count_fuel_made(1_000_000_000_000, &recipes);
 
-    println!(
-        "Ore needed: {}",
-        elements.get(ORE).expect("ore entry not found")
-    );
+    println!("Fuel created: {}", fuel_created);
 }
 
 #[cfg(test)]
@@ -150,6 +183,14 @@ mod tests {
     use super::*;
     use maplit::hashmap;
 
+    #[test]
+    fn count_fuel_made_works() {
+        let input = b"157 ORE => 5 NZVS\n165 ORE => 6 DCFZ\n44 XJWVT, 5 KHKGT, 1 QDVJ, 29 NZVS, 9 GPVTF, 48 HKGWZ => 1 FUEL\n12 HKGWZ, 1 GPVTF, 8 PSHF => 9 QDVJ\n179 ORE => 7 PSHF\n177 ORE => 5 HKGWZ\n7 DCFZ, 7 PSHF => 2 XJWVT\n165 ORE => 2 GPVTF\n3 DCFZ, 7 NZVS, 5 HKGWZ, 10 PSHF => 8 KHKGT";
+        let recipes = parse_input(input);
+        let fuel_created = count_fuel_made(1_000_000_000_000, &recipes);
+
+        assert_eq!(82_892_753, fuel_created);
+    }
     #[test]
     fn parse_input_works() {
         let input = b"10 ORE => 10 A\n1 ORE => 1 B\n7 A, 1 B => 1 C\n7 A, 1 C => 1 D\n7 A, 1 D => 1 E\n7 A, 1 E => 1 FUEL";
@@ -286,5 +327,18 @@ mod tests {
         elements = reduce_to_ore(&recipes, elements);
 
         assert_eq!(165, *elements.get(ORE).expect("ore entry not found"));
+    }
+
+    #[test]
+    fn reduce_to_ore_works_3() {
+        let input = b"157 ORE => 5 NZVS\n165 ORE => 6 DCFZ\n44 XJWVT, 5 KHKGT, 1 QDVJ, 29 NZVS, 9 GPVTF, 48 HKGWZ => 1 FUEL\n12 HKGWZ, 1 GPVTF, 8 PSHF => 9 QDVJ\n179 ORE => 7 PSHF\n177 ORE => 5 HKGWZ\n7 DCFZ, 7 PSHF => 2 XJWVT\n165 ORE => 2 GPVTF\n3 DCFZ, 7 NZVS, 5 HKGWZ, 10 PSHF => 8 KHKGT";
+        let recipes = parse_input(input);
+        let mut elements = HashMap::new();
+
+        elements.insert("FUEL".to_string(), 1);
+
+        elements = reduce_to_ore(&recipes, elements);
+
+        assert_eq!(13312, *elements.get(ORE).expect("ore entry not found"));
     }
 }
