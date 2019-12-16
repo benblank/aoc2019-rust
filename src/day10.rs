@@ -105,7 +105,7 @@ pub fn part2() {
     let mut phase_angles = vectors
         .iter()
         .map(|(x, y)| {
-            let atan2 = (*y as f64).atan2(*x as f64);
+            let atan2 = f64::from(*y).atan2(f64::from(*x));
 
             // Arctangent calculates from the x axis, so rotate to y.
             let mut phase_angle = atan2 + f64::consts::FRAC_PI_2;
