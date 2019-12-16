@@ -45,14 +45,9 @@ impl Direction {
     }
 }
 
-pub fn part1() {
-    let initializer = read_program(INPUT_PATH);
-    let mut intcomp = Intcomp::new(&initializer);
-    let mut map = HashMap::new();
+fn find_oxygen_system(intcomp: &mut Intcomp, map: &mut HashMap<(i32, i32), (i64, u32)>) {
     let mut coords = (0, 0);
     let mut distance = 0;
-
-    map.insert(coords, (1, distance));
 
     loop {
         let mut next = (Direction::North, (i32::MIN, i32::MIN));
@@ -109,6 +104,62 @@ pub fn part1() {
             break;
         }
     }
+}
 
-    println!("Found oxygen system in {} steps.", distance);
+pub fn part1() {
+    let initializer = read_program(INPUT_PATH);
+    let mut intcomp = Intcomp::new(&initializer);
+    let mut map = HashMap::new();
+
+    map.insert((0, 0), (1, 0));
+
+    find_oxygen_system(&mut intcomp, &mut map);
+
+    println!(
+        "Found oxygen system in {} steps.",
+        map.iter()
+            .filter_map(|(_, (status, distance))| {
+                if *status == 2 {
+                    Some(distance)
+                } else {
+                    None
+                }
+            })
+            .next()
+            .expect("CAN'T HAPPEN - no oxygen system found")
+    );
+}
+
+pub fn part2() {
+    let initializer = read_program(INPUT_PATH);
+    let mut intcomp = Intcomp::new(&initializer);
+    let mut map = HashMap::new();
+
+    map.insert((0, 0), (1, 0));
+
+    find_oxygen_system(&mut intcomp, &mut map);
+
+    // `intcomp` now controls a robot located at the oxygen system, but we want
+    // to discard the original map and use the oxygen system as the origin
+    // coords.
+    let mut map = HashMap::new();
+
+    map.insert((0, 0), (2, 0));
+
+    // Running the program with the oxygen system as origin maps at least one
+    // cardinal direction.  Running it four times guarantees all cardinal
+    // directions are covered.
+    find_oxygen_system(&mut intcomp, &mut map);
+    find_oxygen_system(&mut intcomp, &mut map);
+    find_oxygen_system(&mut intcomp, &mut map);
+    find_oxygen_system(&mut intcomp, &mut map);
+
+    println!(
+        "Oxygen restored after {} minutes.",
+        (map.iter()
+            .max_by_key(|(_, (status, distance))| if *status == 0 { 0 } else { *distance })
+            .expect("CAN'T HAPPEN - no entries in map")
+            .1)
+            .1
+    );
 }
