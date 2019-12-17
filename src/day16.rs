@@ -45,6 +45,40 @@ pub fn part1() {
     );
 }
 
+pub fn part2() {
+    let mut digits = fs::read(INPUT_PATH)
+        .expect("could not read input file")
+        .iter()
+        .map(|digit| (*digit as char).to_digit(10).expect("bad digit"))
+        .collect::<Vec<_>>();
+
+    let offset = digits[..7]
+        .to_owned()
+        .iter()
+        .fold(0, |offset, digit| offset * 10 + digit) as usize;
+
+    let mut chain = Vec::new();
+
+    for _ in 0..10_000 {
+        chain.push(digits.to_owned());
+    }
+
+    // Yes, this is totally inefficient.  But it's still fast enough.
+    digits = chain.concat()[offset..].to_owned();
+
+    for _ in 0..100 {
+        for i in (0..digits.len() - 1).rev() {
+            digits[i] = (digits[i] + digits[i + 1]) % 10;
+        }
+    }
+
+    let message = digits[..8]
+        .iter()
+        .fold(0, |message, digit| message * 10 + digit);
+
+    println!("Message: {}", message);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
