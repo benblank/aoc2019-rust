@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 
 const INPUT: [[i64; 3]; 4] = [[15, -2, -6], [-5, -4, -11], [0, -6, 0], [5, 9, 6]];
@@ -16,28 +17,46 @@ impl Moon {
     }
 
     fn apply_gravity(&mut self, other: &mut Moon) {
-        if self.position.0 < other.position.0 {
-            self.velocity.0 += 1;
-            other.velocity.0 -= 1;
-        } else if self.position.0 > other.position.0 {
-            self.velocity.0 -= 1;
-            other.velocity.0 += 1;
+        match self.position.0.cmp(&other.position.0) {
+            Ordering::Less => {
+                self.velocity.0 += 1;
+                other.velocity.0 -= 1;
+            }
+
+            Ordering::Greater => {
+                self.velocity.0 -= 1;
+                other.velocity.0 += 1;
+            }
+
+            Ordering::Equal => {}
         }
 
-        if self.position.1 < other.position.1 {
-            self.velocity.1 += 1;
-            other.velocity.1 -= 1;
-        } else if self.position.1 > other.position.1 {
-            self.velocity.1 -= 1;
-            other.velocity.1 += 1;
+        match self.position.1.cmp(&other.position.1) {
+            Ordering::Less => {
+                self.velocity.1 += 1;
+                other.velocity.1 -= 1;
+            }
+
+            Ordering::Greater => {
+                self.velocity.1 -= 1;
+                other.velocity.1 += 1;
+            }
+
+            Ordering::Equal => {}
         }
 
-        if self.position.2 < other.position.2 {
-            self.velocity.2 += 1;
-            other.velocity.2 -= 1;
-        } else if self.position.2 > other.position.2 {
-            self.velocity.2 -= 1;
-            other.velocity.2 += 1;
+        match self.position.2.cmp(&other.position.2) {
+            Ordering::Less => {
+                self.velocity.2 += 1;
+                other.velocity.2 -= 1;
+            }
+
+            Ordering::Greater => {
+                self.velocity.2 -= 1;
+                other.velocity.2 += 1;
+            }
+
+            Ordering::Equal => {}
         }
     }
 }

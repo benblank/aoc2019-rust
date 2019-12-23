@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::f64;
 use std::fs;
@@ -120,13 +119,9 @@ pub fn part2() {
         .collect::<Vec<_>>();
 
     phase_angles.sort_by(|(phase_angle1, _), (phase_angle2, _)| {
-        if phase_angle1 < phase_angle2 {
-            Ordering::Less
-        } else if phase_angle1 > phase_angle2 {
-            Ordering::Greater
-        } else {
-            Ordering::Equal
-        }
+        phase_angle1
+            .partial_cmp(phase_angle2)
+            .expect("CAN'T HAPPEN - non-finite phase angle")
     });
 
     let mut destroyed = 0;
